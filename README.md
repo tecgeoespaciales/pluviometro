@@ -51,10 +51,10 @@ clavewifi = "emaMifi001"  # Contraseña WiFi
 
 ### Parámetros MQTT
 ```python
-server = "38.242.158.7"   # Servidor MQTT
-puerto = 1883             # Puerto MQTT
-user = "elheim"           # Usuario MQTT
-claveMqtt = "clave"       # Contraseña MQTT
+server = "192.168.0.1"   # Servidor MQTT
+puerto = 1234             # Puerto MQTT
+user = "usuario"           # Usuario MQTT
+claveMqtt = "contraseña"       # Contraseña MQTT
 nodo = "pluviometro"      # Nombre del nodo
 ```
 

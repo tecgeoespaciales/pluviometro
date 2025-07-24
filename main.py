@@ -22,10 +22,10 @@ segundos=0
 
 wifi="mifiEmaV3"
 clavewifi="emaMifi001"
-server="38.242.158.7"
-puerto=1883
-user="elheim"
-claveMqtt="clave"
+server="ip del servidor" #ejemplo "192.168.0.1"
+puerto=1234
+user="usuario"
+claveMqtt="contraseña"
 nodo="pluviometro"
 
 
@@ -82,6 +82,7 @@ while True:
         perifericos.escribirSD(fecha,hora,lectura)
         perifericos.escrituraLocal(fecha,hora,lectura)
         segundos=0
+<<<<<<< HEAD
     try:
         if fechahora[4]==23:
             if fechahora[5]==59:
@@ -91,4 +92,13 @@ while True:
                     contador=0
     except:
         pass
+=======
+        
+    if fechahora[4]==23:
+        if fechahora[5]==59:
+            if fechahora[6]>50:
+                perifericos.escribirSD(fecha,hora,lectura)
+                perifericos.escrituraLocal(fecha,hora,lectura)
+                contador=0
+>>>>>>> 556128544574791ba6bfc89d426ea1cc1301887e
     
