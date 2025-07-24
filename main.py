@@ -1,80 +1,89 @@
-from machine import ADC, Pin, reset
-from time import sleep
-from ulora import LoRa, ModemConfig, SPIConfig
-from machine import WDT
-import random
-
-tony = WDT(timeout=7000)
-
-#Pic Ahorro
-led=Pin(25,Pin.OUT)
-led.on()
-Res=Pin(28,Pin.OUT,Pin.PULL_UP)
-Res.off()
+from machine import ADC, Pin, reset, SDCard,I2C
+import os
+import time
+import ds1307
+from libreria import Perifericos
+from simple import MQTTClient
+import network
+from random import randint
+from libreria import Perifericos
 
 
-# Lora Parameters
-RFM95_RST = 9
-RFM95_SPIBUS = SPIConfig.rp2_1
-RFM95_CS = 13
-RFM95_INT = 8
-RF95_FREQ = 433.0
-RF95_POW = 20
-CLIENT_ADDRESS = 1
-SERVER_ADDRESS = 2
+perifericos = Perifericos()
 
 
+pluviometro = ADC(36)
+pluviometro.atten(ADC.ATTN_11DB)
 
 
-pot = ADC(Pin(26))
 flag=True
-contador=0
-contador2=0
-contador3=0
+contador=0.0
+segundos=0
 
-tony.feed()
-sleep(1)
-lora = LoRa(RFM95_SPIBUS, RFM95_INT, CLIENT_ADDRESS, RFM95_CS, reset_pin=RFM95_RST, freq=RF95_FREQ, tx_power=RF95_POW, acks=False)
-sleep(1)
-tony.feed()
+wifi="mifiEmaV3"
+clavewifi="emaMifi001"
+server="38.242.158.7"
+puerto=1883
+user="elheim"
+claveMqtt="clave"
+nodo="pluviometro"
+
+
+def do_connect(SSID, PASSWORD):
+    import network                            # importa el módulo network
+    global sta_if
+    sta_if = network.WLAN(network.STA_IF)     # instancia el objeto -sta_if- para controlar la interfaz STA
+    if not sta_if.isconnected():              # si no existe conexión...
+        sta_if.active(True)                       # activa el interfaz STA del ESP32
+        sta_if.config(dhcp_hostname="Pluviometro"+"-"+str(randint(1,10)))
+        sta_if.connect(SSID, PASSWORD)            # inicia la conexión con el AP
+        print('Conectando a la red', SSID +"...")
+        while not sta_if.isconnected():           # ...si no se ha establecido la conexión...
+            pass                                  # ...repite el bucle...
+    print('Configuración de red (IP/netmask/gw/DNS):', sta_if.ifconfig())
+    
+do_connect(wifi,clavewifi)
+
+cliente = MQTTClient(client_id="Pluviometro"+str(randint(1,1000)),server=str(server),port=int(puerto),user=str(user),password=str(claveMqtt),keepalive=60)
+cliente.connect()
+
+
 while True:
-    pot_value = pot.read_u16() # read value, 0-65535 across voltage range 0.0v - 3.3v
-    if pot_value > 42000:
+    
+    fecha, hora, fechahora = perifericos.leerDS1307()
+    if int(fechahora[0]) < 2025 or int(fechahora[0])>2030:
+        perifericos.recuperaLocalDate()
+        pass
+    else:
+        fecha, hora, fechahora = perifericos.leerDS1307()
+        perifericos.backupLocalDate(fechahora)
+
+    lluvia = pluviometro.read_u16()
+    if lluvia > 35000:
         if flag==True:
           contador=contador+1
-          contador2=contador
           flag=False
-    if pot_value<42000:
+    if lluvia<35000:
         if flag==False:
             contador=contador+1
-            contador2=contador
             flag=True
-
-    if contador>=20: 
-        lora.send("P"+chr(random.randint(0, 255))+str(contador), SERVER_ADDRESS)
-        sleep(1)
-        lora.send("P"+chr(random.randint(0, 255))+str(contador), SERVER_ADDRESS)
-        sleep(1)
-        lora.send("P"+chr(random.randint(0, 255))+str(contador), SERVER_ADDRESS)
-        contador=0
-    if contador2 != contador:
-        contador3=contador3+1
-    else:
-        contador3=0
-    contador2=contador2+1
-    if contador3==40:
-        if contador != 0:
-            lora.send("P"+chr(random.randint(0, 255))+str(contador), SERVER_ADDRESS)
-            sleep(1)
-            lora.send("P"+chr(random.randint(0, 255))+str(contador), SERVER_ADDRESS)
-            sleep(1)
-            lora.send("P"+chr(random.randint(0, 255))+str(contador), SERVER_ADDRESS)
-            print('mimir')
-            contador3=0
-            contador=0
-            contador2=0
-            Res.on()
     
-    print(contador)
-    tony.feed()
-    sleep(0.5)
+    lectura=contador*0.149
+    cliente.publish(nodo,str(lectura))
+    print(fecha)
+    print(hora)
+    print(lectura,"mm")
+    time.sleep(1)
+    segundos=segundos+1
+    if segundos>300:
+        perifericos.escribirSD(fecha,hora,lectura)
+        perifericos.escrituraLocal(fecha,hora,lectura)
+        segundos=0
+        
+    if fechahora[4]==23:
+        if fechahora[5]==59:
+            if fechahora[6]>50:
+                perifericos.escribirSD(fecha,hora,lectura)
+                perifericos.escrituraLocal(fecha,hora,lectura)
+                contador=0
+    
