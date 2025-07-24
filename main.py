@@ -51,12 +51,15 @@ cliente.connect()
 while True:
     
     fecha, hora, fechahora = perifericos.leerDS1307()
-    if int(fechahora[0]) < 2025 or int(fechahora[0])>2030:
-        perifericos.recuperaLocalDate()
+    try:
+        if int(fechahora[0]) < 2025 or int(fechahora[0])>2030:
+            perifericos.recuperaLocalDate()
+            pass
+        else:
+            fecha, hora, fechahora = perifericos.leerDS1307()
+            perifericos.backupLocalDate(fechahora)
+    except:
         pass
-    else:
-        fecha, hora, fechahora = perifericos.leerDS1307()
-        perifericos.backupLocalDate(fechahora)
 
     lluvia = pluviometro.read_u16()
     if lluvia > 35000:
@@ -79,11 +82,13 @@ while True:
         perifericos.escribirSD(fecha,hora,lectura)
         perifericos.escrituraLocal(fecha,hora,lectura)
         segundos=0
-        
-    if fechahora[4]==23:
-        if fechahora[5]==59:
-            if fechahora[6]>50:
-                perifericos.escribirSD(fecha,hora,lectura)
-                perifericos.escrituraLocal(fecha,hora,lectura)
-                contador=0
+    try:
+        if fechahora[4]==23:
+            if fechahora[5]==59:
+                if fechahora[6]>50:
+                    perifericos.escribirSD(fecha,hora,lectura)
+                    perifericos.escrituraLocal(fecha,hora,lectura)
+                    contador=0
+    except:
+        pass
     
