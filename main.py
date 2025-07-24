@@ -19,6 +19,8 @@ pluviometro.atten(ADC.ATTN_11DB)
 flag=True
 contador=0.0
 segundos=0
+diaActual=0
+diaAuxiliar=0
 
 wifi="mifiEmaV3"
 clavewifi="emaMifi001"
@@ -58,6 +60,7 @@ while True:
         else:
             fecha, hora, fechahora = perifericos.leerDS1307()
             perifericos.backupLocalDate(fechahora)
+        diaActual=fechahora[2]
     except:
         pass
 
@@ -81,17 +84,20 @@ while True:
     print(lectura,"mm")
     time.sleep(1)
     segundos=segundos+1
-    if segundos>300:
+    if segundos>600:
         perifericos.escribirSD(fecha,hora,lectura)
         perifericos.escrituraLocal(fecha,hora,lectura)
         segundos=0
     try:
-        if fechahora[4]==23:
-            if fechahora[5]==59:
-                if fechahora[6]>50:
-                    perifericos.escribirSD(fecha,hora,lectura)
-                    perifericos.escrituraLocal(fecha,hora,lectura)
-                    contador=0
+        if diaAuxiliar==0:
+            diaAuxiliar=diaActual
+            
+        if diaAuxiliar!=diaActual:
+            perifericos.escribirSD(fecha,hora,lectura)
+            perifericos.escrituraLocal(fecha,hora,lectura)
+            contador=0
+            diaAuxiliar=diaActual
+
     except:
         pass
     
