@@ -72,7 +72,10 @@ while True:
             flag=True
     
     lectura=contador*0.149
-    cliente.publish(nodo,str(lectura))
+    try:
+        cliente.publish(nodo,str(lectura))
+    except:
+        pass
     print(fecha)
     print(hora)
     print(lectura,"mm")
@@ -82,7 +85,6 @@ while True:
         perifericos.escribirSD(fecha,hora,lectura)
         perifericos.escrituraLocal(fecha,hora,lectura)
         segundos=0
-<<<<<<< HEAD
     try:
         if fechahora[4]==23:
             if fechahora[5]==59:
@@ -92,13 +94,4 @@ while True:
                     contador=0
     except:
         pass
-=======
-        
-    if fechahora[4]==23:
-        if fechahora[5]==59:
-            if fechahora[6]>50:
-                perifericos.escribirSD(fecha,hora,lectura)
-                perifericos.escrituraLocal(fecha,hora,lectura)
-                contador=0
->>>>>>> 556128544574791ba6bfc89d426ea1cc1301887e
     
