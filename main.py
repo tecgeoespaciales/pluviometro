@@ -29,7 +29,7 @@ server="38.242.158.7" #ejemplo "192.168.0.1"
 puerto=1883
 user="elheim"
 claveMqtt="clave"
-nodo="EMA_PLUVIOMETRO_001"
+nodo="EMA_PLUVIOMETRO_001T"
 
 
 def do_connect(SSID, PASSWORD):
@@ -107,24 +107,18 @@ while True:
     print(hora)
     print(lectura,"mm")
     time.sleep(1)
-    segundos = segundos + 1
-    controlEnvio = controlEnvio + 1
-
-    # Enviar solo si el dato es diferente del anterior y diferente de None
+    # Solo enviar y guardar si el dato es diferente al anterior y diferente de None
     if not hasattr(perifericos, 'lectura_anterior'):
         perifericos.lectura_anterior = None
 
     if lectura != perifericos.lectura_anterior and lectura is not None:
         try:
             cliente.publish(nodo, str(lectura))
+            perifericos.escribirSD(fecha, hora, lectura)
+            perifericos.escrituraLocal(fecha, hora, lectura)
             perifericos.lectura_anterior = lectura
-            controlEnvio = 0
         except:
             reconectar_wifi_mqtt()
-    if segundos>600:
-        perifericos.escribirSD(fecha,hora,lectura)
-        perifericos.escrituraLocal(fecha,hora,lectura)
-        segundos=0
     try:
         if diaAuxiliar==0:
             diaAuxiliar=diaActual
