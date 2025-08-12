@@ -107,12 +107,18 @@ while True:
     print(hora)
     print(lectura,"mm")
     time.sleep(1)
-    segundos=segundos+1
-    controlEnvio=controlEnvio+1
-    if controlEnvio>15:
+    segundos = segundos + 1
+    controlEnvio = controlEnvio + 1
+
+    # Enviar solo si el dato es diferente del anterior y diferente de None
+    if not hasattr(perifericos, 'lectura_anterior'):
+        perifericos.lectura_anterior = None
+
+    if lectura != perifericos.lectura_anterior and lectura is not None:
         try:
-            cliente.publish(nodo,str(lectura))
-            controlEnvio=0
+            cliente.publish(nodo, str(lectura))
+            perifericos.lectura_anterior = lectura
+            controlEnvio = 0
         except:
             reconectar_wifi_mqtt()
     if segundos>600:
