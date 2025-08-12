@@ -19,36 +19,64 @@ pluviometro.atten(ADC.ATTN_11DB)
 flag=True
 contador=0.0
 segundos=0
+controlEnvio=0
 diaActual=0
 diaAuxiliar=0
 
 wifi="mifiEmaV3"
 clavewifi="emaMifi001"
-server="ip del servidor" #ejemplo "192.168.0.1"
-puerto=1234
-user="usuario"
-claveMqtt="contraseña"
-nodo="pluviometro"
+server="38.242.158.7" #ejemplo "192.168.0.1"
+puerto=1883
+user="elheim"
+claveMqtt="clave"
+nodo="EMA_PLUVIOMETRO_001"
 
 
 def do_connect(SSID, PASSWORD):
-    import network                            # importa el módulo network
-    global sta_if
-    sta_if = network.WLAN(network.STA_IF)     # instancia el objeto -sta_if- para controlar la interfaz STA
-    if not sta_if.isconnected():              # si no existe conexión...
-        sta_if.active(True)                       # activa el interfaz STA del ESP32
+    global sta_if, segundos
+    sta_if = network.WLAN(network.STA_IF)
+    if not sta_if.isconnected():
+        sta_if.active(True)
         sta_if.config(dhcp_hostname="Pluviometro"+"-"+str(randint(1,10)))
-        sta_if.connect(SSID, PASSWORD)            # inicia la conexión con el AP
+        sta_if.connect(SSID, PASSWORD)
         print('Conectando a la red', SSID +"...")
-        while not sta_if.isconnected():           # ...si no se ha establecido la conexión...
-            pass                                  # ...repite el bucle...
+        timeout = 10  # segundos
+        start = time.time()
+        while not sta_if.isconnected():
+            if time.time() - start > timeout:
+                print(f"No se pudo conectar a la red {SSID} en {timeout} segundos.")
+                return False
+            time.sleep(0.5)
+            segundos += 0.5
+
     print('Configuración de red (IP/netmask/gw/DNS):', sta_if.ifconfig())
-    
-do_connect(wifi,clavewifi)
+    return True
+
+do_connect(wifi, clavewifi)
+
+
+
+def reconectar_wifi_mqtt():
+    # Reintenta conexión WiFi si está desconectado
+    if not sta_if.isconnected():
+        sta_if.active(False)
+        print("WiFi desconectado. Reintentando conexión...")
+        do_connect(wifi, clavewifi)
+    # Reintenta conexión MQTT si está desconectado
+    try:
+        cliente.ping()
+    except:
+        print("MQTT desconectado. Reintentando conexión...")
+        try:
+            cliente.connect()
+        except Exception as e:
+            print("Error al reconectar MQTT:", e)
 
 cliente = MQTTClient(client_id="Pluviometro"+str(randint(1,1000)),server=str(server),port=int(puerto),user=str(user),password=str(claveMqtt),keepalive=60)
-cliente.connect()
-
+try:
+    cliente.connect()
+except Exception as e:
+    print("Error al conectar MQTT:", e)
 
 while True:
     
@@ -74,16 +102,19 @@ while True:
             contador=contador+1
             flag=True
     
-    lectura=contador*0.149
-    try:
-        cliente.publish(nodo,str(lectura))
-    except:
-        pass
+    lectura=(contador*0.149)*1.2
     print(fecha)
     print(hora)
     print(lectura,"mm")
     time.sleep(1)
     segundos=segundos+1
+    controlEnvio=controlEnvio+1
+    if controlEnvio>15:
+        try:
+            cliente.publish(nodo,str(lectura))
+            controlEnvio=0
+        except:
+            reconectar_wifi_mqtt()
     if segundos>600:
         perifericos.escribirSD(fecha,hora,lectura)
         perifericos.escrituraLocal(fecha,hora,lectura)
@@ -101,3 +132,4 @@ while True:
     except:
         pass
     
+
